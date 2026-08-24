@@ -839,7 +839,9 @@
   </main>
 </div>
 
-<!-- ============== TAB NAVIGATION ============== -->
+  
+
+<!-- ============== TAB NAVIGATION v1.0 ============== 
 <script>
 (function() {
   const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
@@ -881,6 +883,84 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   });
+})();
+</script>
+====================================================== -->
+
+<!-- ============== TAB NAVIGATION v1.1 ============== -->
+<script>
+(function() {
+  const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+  const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
+
+  // Map readable hash names to tab panel IDs
+  const hashAliases = {
+    '#healing-foodways': 'page-2',
+    '#recipes-of-memories': 'page-2',
+    '#climate-justice': 'page-3',
+    '#prototyping-journal': 'page-4',
+    '#relational-foresight': 'page-1'
+  };
+
+  function activate(tabId, updateUrl = true) {
+    const tab = tabs.find(t => t.id === tabId || t.dataset.target === tabId);
+    if (!tab) return;
+    
+    tabs.forEach(t => {
+      const selected = t === tab;
+      t.setAttribute('aria-selected', selected);
+      t.setAttribute('tabindex', selected ? '0' : '-1');
+    });
+    
+    panels.forEach(p => { p.hidden = p.id !== tab.dataset.target; });
+    
+    if (updateUrl) {
+      history.replaceState(null, '', '#' + tab.dataset.target);
+    }
+
+    if (!window.__gridInited && tab.dataset.target === 'page-4') {
+      initGridProto();
+      window.__gridInited = true;
+    }
+  }
+
+  tabs.forEach((t, idx) => {
+    t.addEventListener('click', () => activate(t.id));
+    t.addEventListener('keydown', (e) => {
+      let next = null;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = tabs[(idx + 1) % tabs.length];
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = tabs[(idx - 1 + tabs.length) % tabs.length];
+      else if (e.key === 'Home') next = tabs[0];
+      else if (e.key === 'End') next = tabs[tabs.length - 1];
+      if (next) { e.preventDefault(); next.focus(); activate(next.id); }
+    });
+  });
+
+  // Cross-tab jump links (continue-link, back-link)
+  document.querySelectorAll('[data-jump-tab]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = link.dataset.jumpTab;
+      activate(target);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  // Check URL hash on page load (e.g. #page-2 or #healing-foodways)
+  function checkInitialHash() {
+    const hash = window.location.hash.toLowerCase();
+    if (!hash) return;
+
+    const targetPanel = hashAliases[hash] || hash.replace('#', '');
+    const matchingTab = tabs.find(t => t.dataset.target === targetPanel || t.id === targetPanel);
+    
+    if (matchingTab) {
+      activate(matchingTab.id, false);
+    }
+  }
+
+  checkInitialHash();
+  window.addEventListener('hashchange', checkInitialHash);
 })();
 </script>
 
